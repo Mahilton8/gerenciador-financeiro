@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador Financeiro</title>
+<style>
+  :root{
+    --amarelo:#FFC400; --amarelo-esc:#E6A100; --azul:#1B2A4A; --cinza:#333333; --fundo:#F7F7F5;
+    --verde:#1F8A5A; --vermelho:#C0392B;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:Segoe UI,Arial,sans-serif;background:var(--fundo);color:var(--cinza);margin:0;padding:20px;}
+  .wrap{max-width:900px;margin:0 auto;}
+  h1{color:var(--azul);font-size:22px;margin-bottom:4px;}
+  .sub{color:#777;font-size:13px;margin-bottom:20px;}
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+  .card{background:#fff;border-radius:10px;padding:14px 16px;border-left:5px solid var(--amarelo);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .card.receita{border-color:var(--verde);}
+  .card.despesa{border-color:var(--vermelho);}
+  .card.saldo{border-color:var(--azul);}
+  .card .label{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.5px;}
+  .card .valor{font-size:22px;font-weight:700;margin-top:4px;color:var(--azul);}
+  .card.receita .valor{color:var(--verde);}
+  .card.despesa .valor{color:var(--vermelho);}
+  .panel{background:#fff;border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .panel h2{font-size:15px;color:var(--azul);margin-top:0;margin-bottom:12px;}
+  form{display:grid;grid-template-columns:1fr 1.2fr 1.4fr 1fr 1fr auto;gap:8px;align-items:end;}
+  label{font-size:11px;color:#888;display:block;margin-bottom:3px;}
+  input,select{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;}
+  button{background:var(--amarelo);border:none;color:var(--azul);font-weight:700;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:13px;}
+  button:hover{background:var(--amarelo-esc);color:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;padding:6px 8px;border-bottom:2px solid #eee;}
+  td{padding:8px;border-bottom:1px solid #f0f0f0;}
+  tr:hover{background:#fafafa;}
+  .tag{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+  .tag.receita{background:#e6f6ee;color:var(--verde);}
+  .tag.despesa{background:#fbeae7;color:var(--vermelho);}
+  .tag.categoria{background:#eef1f6;color:var(--azul);}
+  .del{background:none;border:none;color:#bbb;cursor:pointer;font-size:15px;padding:0;}
+  .del:hover{color:var(--vermelho);}
+  .empty{color:#999;text-align:center;padding:20px;font-size:13px;}
+  .filtros{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;background:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .graficos-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .chart-wrap{position:relative;height:240px;}
+  .filtros select{width:auto;}
+  .acoes{display:flex;gap:10px;justify-content:flex-end;align-items:center;}
+  .icobtn{background:none;border:none;color:#bbb;cursor:pointer;font-size:15px;padding:0;line-height:1;}
+  .icobtn:hover{color:var(--azul);}
+  .icobtn.del:hover{color:var(--vermelho);}
+  .status-btn{border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;}
+  .status-btn.pago{background:#e6f6ee;color:var(--verde);}
+  .status-btn.pendente{background:#fdf1de;color:var(--amarelo-esc);}
+  tr.pago td{opacity:.55;}
+  .edit-row input,.edit-row select{padding:5px;font-size:12px;}
+  .acoes-wrap{position:relative;display:inline-block;}
+  .acoes-btn{background:none;border:1px solid #ddd;color:#666;cursor:pointer;font-size:12px;padding:5px 10px;border-radius:6px;}
+  .acoes-btn:hover{background:#f5f5f5;}
+  .acoes-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);background:#fff;border:1px solid #e5e5e5;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.12);min-width:130px;z-index:10;overflow:hidden;}
+  .acoes-menu.aberto{display:block;}
+  .acoes-menu button{display:flex;align-items:center;gap:6px;width:100%;background:#fff;color:var(--cinza);border:none;text-align:left;padding:8px 12px;font-size:12px;font-weight:400;border-radius:0;}
+  .acoes-menu button:hover{background:#f5f5f5;color:var(--cinza);}
+  .acoes-menu button.excluir-opt:hover{background:#fbeae7;color:var(--vermelho);}
+
+  @media (max-width: 640px){
+    body{padding:12px;}
+    h1{font-size:19px;}
+    .cards{grid-template-columns:1fr 1fr;}
+    .cards .card.saldo{grid-column:1 / -1;}
+    .graficos-grid{grid-template-columns:1fr;}
+    .card .valor{font-size:18px;}
+    .panel{padding:14px;}
+    form{grid-template-columns:1fr 1fr;}
+    form button{grid-column:1 / -1;}
+    table thead{display:none;}
+    table, tbody, tr, td{display:block;width:100%;}
+    tr{background:#fff;border:1px solid #eee;border-radius:10px;margin-bottom:10px;padding:10px 12px;}
+    td{border:none;padding:4px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+    td:before{content:attr(data-label);font-size:11px;color:#999;text-transform:uppercase;font-weight:600;}
+    td.acoes{justify-content:flex-end;}
+    td.acoes:before{content:'';}
+    .acoes-wrap{position:static;}
+    .acoes-menu{right:12px;}
+    .edit-row td{flex-direction:column;align-items:stretch;}
+    .edit-row input,.edit-row select{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gerenciador Financeiro</h1>
+  <div class="sub">Registro de receitas e despesas — dados salvos automaticamente</div>
+
+  <div class="filtros">
+    <select id="filtroTipo">
+      <option value="todos">Todos</option>
+      <option value="receita">Receitas</option>
+      <option value="despesa">Despesas</option>
+    </select>
+    <select id="filtroMes">
+      <option value="todos">Todos os meses</option>
+    </select>
+    <select id="filtroStatus">
+      <option value="todos">Todos os status</option>
+      <option value="pago">Pago</option>
+      <option value="pendente">Pendente</option>
+    </select>
+    <select id="filtroCategoria">
+      <option value="todos">Todas as categorias</option>
+    </select>
+    <span style="font-size:12px;color:#999;align-self:center;">de</span>
+    <input type="date" id="filtroDataIni" style="width:auto;">
+    <span style="font-size:12px;color:#999;align-self:center;">até</span>
+    <input type="date" id="filtroDataFim" style="width:auto;">
+    <button type="button" id="limparPeriodo" style="padding:8px 10px;">Limpar período</button>
+  </div>
+
+  <div class="cards">
+    <div class="card receita"><div class="label">Receitas</div><div class="valor" id="totReceita">R$ 0,00</div></div>
+    <div class="card despesa"><div class="label">Despesas</div><div class="valor" id="totDespesa">R$ 0,00</div></div>
+    <div class="card saldo"><div class="label">Saldo</div><div class="valor" id="saldo">R$ 0,00</div></div>
+  </div>
+
+  <div class="panel" style="display:none;">
+    <h2>Sincronização com Google Sheets</h2>
+    <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+      <div style="flex:1;min-width:220px;">
+        <label>URL do Web App (Google Apps Script)</label>
+        <input id="webhookUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <button id="salvarWebhook" type="button">Salvar</button>
+    </div>
+    <div id="syncStatus" style="font-size:12px;color:#999;margin-top:8px;">Cada lançamento é enviado automaticamente ao salvar.</div>
+  </div>
+
+  <div class="panel">
+    <h2>Novo lançamento</h2>
+    <form id="frm">
+      <div>
+        <label>Tipo</label>
+        <select id="tipo"><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+      </div>
+      <div>
+        <label>Categoria</label>
+        <select id="categoria"></select>
+      </div>
+      <div>
+        <label>Descrição</label>
+        <input id="desc" type="text" placeholder="Ex: Salário, Aluguel" required>
+      </div>
+      <div>
+        <label>Valor (R$)</label>
+        <input id="valor" type="number" step="0.01" min="0" placeholder="0,00" required>
+      </div>
+      <div>
+        <label>Data</label>
+        <input id="data" type="date" required>
+      </div>
+      <button type="submit">Adicionar</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Lançamentos</h2>
+    <table>
+      <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+      <tbody id="lista"></tbody>
+    </table>
+    <div id="vazio" class="empty" style="display:none;">Nenhum lançamento ainda.</div>
+  </div>
+
+  <div class="graficos-grid">
+    <div class="panel">
+      <h2>Receitas x Despesas por mês</h2>
+      <div class="chart-wrap"><canvas id="chartColunas"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Despesas por categoria</h2>
+      <div class="chart-wrap"><canvas id="chartPizzaDespesa"></canvas></div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let chartColunas, chartPizzaDespesa;
+const CORES = ['#FFC400','#1B2A4A','#1F8A5A','#C0392B','#E6A100','#5B6B8C','#8BC34A','#D97706','#607D8B','#9B59B6'];
+let registros = [];
+
+const CATEGORIAS_BASE = {
+  receita: ['Vendas','Pró-labore','Prestação de serviços','Investimentos','Outras receitas'],
+  despesa: ['Fornecedores','Folha de pagamento','Aluguel','Impostos','Marketing','Manutenção','Outras despesas']
+};
+let categoriasExtras = { receita: [], despesa: [] };
+
+function todasCategorias(tipo){
+  return [...CATEGORIAS_BASE[tipo], ...categoriasExtras[tipo]];
+}
+
+async function carregarCategoriasExtras(){
+  try{
+    const r = localStorage.getItem('categorias_extras');
+    categoriasExtras = r ? JSON.parse(r) : { receita: [], despesa: [] };
+  }catch(e){ categoriasExtras = { receita: [], despesa: [] }; }
+}
+
+async function salvarCategoriasExtras(){
+  try{ localStorage.setItem('categorias_extras', JSON.stringify(categoriasExtras)); }catch(e){}
+}
+
+function popularCategoriasForm(valorSelecionado){
+  const tipo = document.getElementById('tipo').value;
+  const sel = document.getElementById('categoria');
+  sel.innerHTML = todasCategorias(tipo).map(c=>`<option value="${c}">${c}</option>`).join('')
+    + '<option value="__nova__">+ Nova categoria...</option>';
+  if(valorSelecionado) sel.value = valorSelecionado;
+}
+
+document.getElementById('categoria').addEventListener('change', async (e)=>{
+  if(e.target.value === '__nova__'){
+    const tipo = document.getElementById('tipo').value;
+    const nome = prompt('Nome da nova categoria:');
+    if(nome && nome.trim()){
+      const nomeLimpo = nome.trim();
+      if(!todasCategorias(tipo).includes(nomeLimpo)){
+        categoriasExtras[tipo].push(nomeLimpo);
+        await salvarCategoriasExtras();
+      }
+      popularCategoriasForm(nomeLimpo);
+    } else {
+      popularCategoriasForm();
+    }
+  }
+});
+
+function fmt(v){ return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+const WEBHOOK_URL_PADRAO = 'https://script.google.com/macros/s/AKfycbye-JqFnJGydDjPOeits2tu1AumANCWqp7hwuslsewN5q_duRbx0wyh55JXh7Jrbyh3/exec';
+let webhookUrl = '';
+
+async function carregarWebhook(){
+  try{
+    webhookUrl = localStorage.getItem('webhook_url') || WEBHOOK_URL_PADRAO;
+  }catch(e){ webhookUrl = WEBHOOK_URL_PADRAO; }
+  document.getElementById('webhookUrl').value = webhookUrl;
+}
+
+async function enviarParaSheets(registro, acao){
+  if(!webhookUrl) return;
+  const status = document.getElementById('syncStatus');
+  try{
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ acao, registro })
+    });
+    status.textContent = 'Último envio: ' + new Date().toLocaleTimeString('pt-BR');
+  }catch(e){
+    status.textContent = 'Falha ao enviar para o Google Sheets.';
+  }
+}
+
+async function carregarDoSheets(){
+  if(!webhookUrl) return false;
+  try{
+    const resp = await fetch(webhookUrl + '?acao=listar');
+    if(!resp.ok) return false;
+    const dados = await resp.json();
+    if(!Array.isArray(dados)) return false;
+    registros = dados.map(r=>({
+      id: String(r.id), data: r.data, desc: r.desc, tipo: r.tipo,
+      categoria: r.categoria, valor: parseFloat(r.valor)||0, pago: r.pago===true||r.pago==='Sim'
+    }));
+    await salvarLocal();
+    return true;
+  }catch(e){ return false; }
+}
+
+document.getElementById('salvarWebhook').addEventListener('click', async ()=>{
+  webhookUrl = document.getElementById('webhookUrl').value.trim();
+  try{ localStorage.setItem('webhook_url', webhookUrl); }catch(e){}
+  document.getElementById('syncStatus').textContent = webhookUrl ? 'URL salva. Buscando dados da planilha...' : 'URL removida.';
+  if(webhookUrl){
+    const carregou = await carregarDoSheets();
+    if(carregou){
+      document.getElementById('syncStatus').textContent = registros.length + ' lançamento(s) carregados da planilha.';
+    }else{
+      document.getElementById('syncStatus').textContent = 'URL salva. Enviando histórico local...';
+      for(const reg of registros){ await enviarParaSheets(reg,'upsert'); }
+      document.getElementById('syncStatus').textContent = 'URL salva. ' + registros.length + ' lançamento(s) enviados.';
+    }
+    render();
+  }
+});
+
+async function carregar(){
+  try{
+    const r = localStorage.getItem('registros');
+    registros = r ? JSON.parse(r) : [];
+  }catch(e){ registros = []; }
+  await carregarCategoriasExtras();
+  await carregarWebhook();
+  if(webhookUrl){ await carregarDoSheets(); }
+  popularCategoriasForm();
+  render();
+}
+
+async function salvarLocal(){
+  try{ localStorage.setItem('registros', JSON.stringify(registros)); }catch(e){}
+}
+
+async function salvar(){
+  await salvarLocal();
+}
+
+let editandoId = null;
+
+function render(){
+  const filtro = document.getElementById('filtroTipo').value;
+  const mes = document.getElementById('filtroMes').value;
+  const status = document.getElementById('filtroStatus').value;
+  const categoria = document.getElementById('filtroCategoria').value;
+  const dataIni = document.getElementById('filtroDataIni').value;
+  const dataFim = document.getElementById('filtroDataFim').value;
+  const lista = document.getElementById('lista');
+  const vazio = document.getElementById('vazio');
+  lista.innerHTML = '';
+
+  atualizarOpcoesMes(mes);
+  atualizarOpcoesCategoria(categoria);
+
+  const ordenados = [...registros].sort((a,b)=> new Date(b.data)-new Date(a.data));
+  let filtrados = filtro==='todos' ? ordenados : ordenados.filter(r=>r.tipo===filtro);
+  if(mes !== 'todos'){ filtrados = filtrados.filter(r=> r.data.slice(0,7) === mes); }
+  if(status !== 'todos'){ filtrados = filtrados.filter(r=> (status==='pago') === !!r.pago); }
+  if(categoria !== 'todos'){ filtrados = filtrados.filter(r=> r.categoria === categoria); }
+  if(dataIni){ filtrados = filtrados.filter(r=> r.data >= dataIni); }
+  if(dataFim){ filtrados = filtrados.filter(r=> r.data <= dataFim); }
+
+  if(filtrados.length===0){ vazio.style.display='block'; } else { vazio.style.display='none'; }
+
+  filtrados.forEach(r=>{
+    const tr = document.createElement('tr');
+    if(r.pago) tr.classList.add('pago');
+
+    if(editandoId === r.id){
+      tr.classList.add('edit-row');
+      tr.innerHTML = `
+        <td data-label="Data"><input type="date" class="e-data" value="${r.data}"></td>
+        <td data-label="Descrição"><input type="text" class="e-desc" value="${r.desc.replace(/"/g,'&quot;')}"></td>
+        <td data-label="Tipo">
+          <select class="e-tipo">
+            <option value="receita" ${r.tipo==='receita'?'selected':''}>Receita</option>
+            <option value="despesa" ${r.tipo==='despesa'?'selected':''}>Despesa</option>
+          </select>
+        </td>
+        <td data-label="Categoria">
+          <select class="e-categoria">
+            ${todasCategorias(r.tipo).map(c=>`<option value="${c}" ${r.categoria===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </td>
+        <td data-label="Valor" style="text-align:right"><input type="number" step="0.01" min="0" class="e-valor" value="${r.valor}" style="text-align:right"></td>
+        <td></td>
+        <td class="acoes">
+          <button class="icobtn salvar-edit" data-id="${r.id}" title="Salvar"><b>✓</b></button>
+          <button class="icobtn cancelar-edit" title="Cancelar">✕</button>
+        </td>
+      `;
+      lista.appendChild(tr);
+      return;
+    }
+
+    const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR');
+    tr.innerHTML = `
+      <td data-label="Data">${dataFmt}</td>
+      <td data-label="Descrição">${r.desc}</td>
+      <td data-label="Tipo"><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
+      <td data-label="Categoria"><span class="tag categoria">${r.categoria||'—'}</span></td>
+      <td data-label="Valor" style="text-align:right">${fmt(r.valor)}</td>
+      <td data-label="Status"><button class="status-btn ${r.pago?'pago':'pendente'}" data-id="${r.id}">${r.pago?'Pago':'Pendente'}</button></td>
+      <td class="acoes">
+        <div class="acoes-wrap">
+          <button class="acoes-btn abrir-menu" data-id="${r.id}">Ações ▾</button>
+          <div class="acoes-menu" data-menu="${r.id}">
+            <button class="editar-opt" data-id="${r.id}">✎ Editar</button>
+            <button class="excluir-opt" data-id="${r.id}">✕ Excluir</button>
+          </div>
+        </div>
+      </td>
+    `;
+    lista.appendChild(tr);
+  });
+
+  lista.querySelectorAll('.status-btn').forEach(b=>{
+    b.onclick = async ()=>{
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      if(reg){ reg.pago = !reg.pago; await salvar(); await enviarParaSheets(reg,'upsert'); render(); }
+    };
+  });
+
+  lista.querySelectorAll('.abrir-menu').forEach(b=>{
+    b.onclick = (ev)=>{
+      ev.stopPropagation();
+      const menu = lista.querySelector(`.acoes-menu[data-menu="${b.dataset.id}"]`);
+      const jaAberto = menu.classList.contains('aberto');
+      lista.querySelectorAll('.acoes-menu').forEach(m=>m.classList.remove('aberto'));
+      if(!jaAberto) menu.classList.add('aberto');
+    };
+  });
+
+  lista.querySelectorAll('.editar-opt').forEach(b=>{
+    b.onclick = ()=>{ editandoId = b.dataset.id; render(); };
+  });
+
+  lista.querySelectorAll('.excluir-opt').forEach(b=>{
+    b.onclick = async ()=>{
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      registros = registros.filter(r=>r.id !== b.dataset.id);
+      await salvar();
+      if(reg) await enviarParaSheets(reg,'excluir');
+      render();
+    };
+  });
+
+  lista.querySelectorAll('.cancelar-edit').forEach(b=>{
+    b.onclick = ()=>{ editandoId = null; render(); };
+  });
+
+  lista.querySelectorAll('.e-tipo').forEach(sel=>{
+    sel.onchange = ()=>{
+      const tr = sel.closest('tr');
+      const catSel = tr.querySelector('.e-categoria');
+      catSel.innerHTML = todasCategorias(sel.value).map(c=>`<option value="${c}">${c}</option>`).join('');
+    };
+  });
+
+  lista.querySelectorAll('.salvar-edit').forEach(b=>{
+    b.onclick = async ()=>{
+      const tr = b.closest('tr');
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      if(!reg) return;
+      const novoValor = parseFloat(tr.querySelector('.e-valor').value);
+      const novaData = tr.querySelector('.e-data').value;
+      const novaDesc = tr.querySelector('.e-desc').value.trim();
+      const novoTipo = tr.querySelector('.e-tipo').value;
+      const novaCategoria = tr.querySelector('.e-categoria').value;
+      if(!novaDesc || isNaN(novoValor) || !novaData) return;
+      reg.desc = novaDesc; reg.valor = novoValor; reg.data = novaData; reg.tipo = novoTipo; reg.categoria = novaCategoria;
+      editandoId = null;
+      await salvar();
+      await enviarParaSheets(reg,'upsert');
+      render();
+    };
+  });
+
+  let baseTotais = mes === 'todos' ? registros : registros.filter(r=> r.data.slice(0,7) === mes);
+  if(status !== 'todos'){ baseTotais = baseTotais.filter(r=> (status==='pago') === !!r.pago); }
+  if(categoria !== 'todos'){ baseTotais = baseTotais.filter(r=> r.categoria === categoria); }
+  if(dataIni){ baseTotais = baseTotais.filter(r=> r.data >= dataIni); }
+  if(dataFim){ baseTotais = baseTotais.filter(r=> r.data <= dataFim); }
+  const totReceita = baseTotais.filter(r=>r.tipo==='receita').reduce((s,r)=>s+r.valor,0);
+  const totDespesa = baseTotais.filter(r=>r.tipo==='despesa').reduce((s,r)=>s+r.valor,0);
+  document.getElementById('totReceita').textContent = fmt(totReceita);
+  document.getElementById('totDespesa').textContent = fmt(totDespesa);
+  document.getElementById('saldo').textContent = fmt(totReceita-totDespesa);
+
+  atualizarGraficos(baseTotais);
+}
+
+function atualizarGraficos(dados){
+  if(typeof Chart === 'undefined') return;
+
+  // Receitas x Despesas por mês
+  const meses = [...new Set(dados.map(r=>r.data.slice(0,7)))].sort();
+  const receitasPorMes = meses.map(m=> dados.filter(r=>r.tipo==='receita' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0));
+  const despesasPorMes = meses.map(m=> dados.filter(r=>r.tipo==='despesa' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0));
+  const labelsMes = meses.map(m=>{
+    const [ano,mm] = m.split('-');
+    return nomesMes[parseInt(mm,10)-1].slice(0,3) + '/' + ano.slice(2);
+  });
+
+  if(chartColunas) chartColunas.destroy();
+  chartColunas = new Chart(document.getElementById('chartColunas'), {
+    type: 'bar',
+    data: {
+      labels: labelsMes,
+      datasets: [
+        { label: 'Receitas', data: receitasPorMes, backgroundColor: '#1F8A5A' },
+        { label: 'Despesas', data: despesasPorMes, backgroundColor: '#C0392B' }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+  });
+
+  // Despesas por categoria (pizza)
+  const despesas = dados.filter(r=>r.tipo==='despesa');
+  const catsDespesa = [...new Set(despesas.map(r=>r.categoria))];
+  const valoresDespesa = catsDespesa.map(c=> despesas.filter(r=>r.categoria===c).reduce((s,r)=>s+r.valor,0));
+
+  if(chartPizzaDespesa) chartPizzaDespesa.destroy();
+  chartPizzaDespesa = new Chart(document.getElementById('chartPizzaDespesa'), {
+    type: 'pie',
+    data: { labels: catsDespesa, datasets: [{ data: valoresDespesa, backgroundColor: CORES }] },
+    options: { responsive:true, maintainAspectRatio:false }
+  });
+
+}
+
+document.addEventListener('click', ()=>{
+  document.querySelectorAll('.acoes-menu').forEach(m=>m.classList.remove('aberto'));
+});
+
+document.getElementById('frm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const tipo = document.getElementById('tipo').value;
+  const categoria = document.getElementById('categoria').value;
+  if(categoria === '__nova__') return;
+  const desc = document.getElementById('desc').value.trim();
+  const valor = parseFloat(document.getElementById('valor').value);
+  const data = document.getElementById('data').value;
+  if(!desc || isNaN(valor) || !data) return;
+
+  registros.push({ id: Date.now().toString(), tipo, categoria, desc, valor, data, pago:false });
+  await salvar();
+  await enviarParaSheets(registros[registros.length-1],'upsert');
+  render();
+  e.target.reset();
+  popularCategoriasForm();
+  document.getElementById('data').valueAsDate = new Date();
+});
+
+document.getElementById('tipo').addEventListener('change', ()=>popularCategoriasForm());
+
+const nomesMes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function atualizarOpcoesMes(selecionado){
+  const sel = document.getElementById('filtroMes');
+  const chaves = [...new Set(registros.map(r=>r.data.slice(0,7)))].sort().reverse();
+  const atual = [...sel.options].map(o=>o.value).join(',');
+  const novo = ['todos', ...chaves].join(',');
+  if(atual === novo) return;
+
+  sel.innerHTML = '<option value="todos">Todos os meses</option>' + chaves.map(c=>{
+    const [ano,m] = c.split('-');
+    const label = `${nomesMes[parseInt(m,10)-1]} de ${ano}`;
+    return `<option value="${c}">${label.charAt(0).toUpperCase()+label.slice(1)}</option>`;
+  }).join('');
+  sel.value = chaves.includes(selecionado) ? selecionado : 'todos';
+}
+
+function atualizarOpcoesCategoria(selecionado){
+  const sel = document.getElementById('filtroCategoria');
+  const chaves = [...new Set(registros.map(r=>r.categoria).filter(Boolean))].sort();
+  const atual = [...sel.options].map(o=>o.value).join(',');
+  const novo = ['todos', ...chaves].join(',');
+  if(atual === novo) return;
+
+  sel.innerHTML = '<option value="todos">Todas as categorias</option>' + chaves.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = chaves.includes(selecionado) ? selecionado : 'todos';
+}
+
+document.getElementById('filtroTipo').addEventListener('change', render);
+document.getElementById('filtroMes').addEventListener('change', render);
+document.getElementById('filtroStatus').addEventListener('change', render);
+document.getElementById('filtroCategoria').addEventListener('change', render);
+document.getElementById('filtroDataIni').addEventListener('change', render);
+document.getElementById('filtroDataFim').addEventListener('change', render);
+document.getElementById('limparPeriodo').addEventListener('click', ()=>{
+  document.getElementById('filtroDataIni').value = '';
+  document.getElementById('filtroDataFim').value = '';
+  render();
+});
+document.getElementById('data').valueAsDate = new Date();
+
+carregar();
+</script>
+</body>
+</html>
