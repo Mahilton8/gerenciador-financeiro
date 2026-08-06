@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerenciador Financeiro</title>
+<style>
+  :root{
+    --amarelo:#FFC400; --amarelo-esc:#E6A100; --azul:#1B2A4A; --cinza:#333333; --fundo:#F7F7F5;
+    --verde:#1F8A5A; --vermelho:#C0392B;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:Segoe UI,Arial,sans-serif;background:var(--fundo);color:var(--cinza);margin:0;padding:20px;}
+  .wrap{max-width:900px;margin:0 auto;}
+  h1{color:var(--azul);font-size:22px;margin-bottom:4px;}
+  .sub{color:#777;font-size:13px;margin-bottom:20px;}
+  .cards{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+  .card.pendente{border-style:dashed;opacity:.9;}
+  .card{background:#fff;border-radius:10px;padding:14px 16px;border-left:5px solid var(--amarelo);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .card.receita{border-color:var(--verde);}
+  .card.despesa{border-color:var(--vermelho);}
+  .card.saldo{border-color:var(--azul);}
+  .card .label{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:.5px;}
+  .card .valor{font-size:22px;font-weight:700;margin-top:4px;color:var(--azul);}
+  .card.receita .valor{color:var(--verde);}
+  .card.despesa .valor{color:var(--vermelho);}
+  .panel{background:#fff;border-radius:10px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .panel h2{font-size:15px;color:var(--azul);margin-top:0;margin-bottom:12px;}
+  form{display:grid;grid-template-columns:repeat(4, 1fr);gap:8px;align-items:end;}
+  form button{grid-column:span 1;}
+  label{font-size:11px;color:#888;display:block;margin-bottom:3px;}
+  input,select{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;}
+  button{background:var(--amarelo);border:none;color:var(--azul);font-weight:700;padding:9px 14px;border-radius:6px;cursor:pointer;font-size:13px;}
+  button:hover{background:var(--amarelo-esc);color:#fff;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:#888;font-weight:600;font-size:11px;text-transform:uppercase;padding:6px 8px;border-bottom:2px solid #eee;}
+  td{padding:8px;border-bottom:1px solid #f0f0f0;}
+  tr:hover{background:#fafafa;}
+  .tag{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+  .tag.receita{background:#e6f6ee;color:var(--verde);}
+  .tag.despesa{background:#fbeae7;color:var(--vermelho);}
+  .tag.categoria{background:#eef1f6;color:var(--azul);}
+  .del{background:none;border:none;color:#bbb;cursor:pointer;font-size:15px;padding:0;}
+  .del:hover{color:var(--vermelho);}
+  .empty{color:#999;text-align:center;padding:20px;font-size:13px;}
+  .filtros{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;background:#fff;padding:12px 14px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+  .graficos-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .chart-wrap{position:relative;height:240px;}
+  .abas{display:flex;gap:6px;margin-bottom:16px;border-bottom:2px solid #eee;}
+  .aba-btn{background:none;border:none;padding:10px 18px;font-size:14px;font-weight:600;color:#888;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;}
+  .aba-btn.ativa{color:var(--azul);border-bottom-color:var(--amarelo);}
+  .aba-btn:hover{color:var(--azul);}
+  .filtro-rapido{display:flex;gap:8px;margin-bottom:14px;}
+  .fr-btn{background:#f2f2f0;border:1px solid #e5e5e5;color:#666;padding:7px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;}
+  .fr-btn:hover{background:#eaeaea;}
+  .fr-btn.ativo{background:var(--azul);border-color:var(--azul);color:#fff;}
+  .filtros select{width:auto;}
+  .acoes{display:flex;gap:10px;justify-content:flex-end;align-items:center;}
+  .icobtn{background:none;border:none;color:#bbb;cursor:pointer;font-size:15px;padding:0;line-height:1;}
+  .icobtn:hover{color:var(--azul);}
+  .icobtn.del:hover{color:var(--vermelho);}
+  .status-btn{border:none;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;}
+  .status-btn.pago{background:#e6f6ee;color:var(--verde);}
+  .status-btn.pendente{background:#fdf1de;color:var(--amarelo-esc);}
+  tr.pago td{opacity:.55;}
+  .edit-row input,.edit-row select{padding:5px;font-size:12px;}
+  .icobtn{background:none;border:1px solid #ddd;color:#666;cursor:pointer;font-size:13px;padding:6px 10px;border-radius:6px;margin-left:4px;}
+  .icobtn:hover{background:#f5f5f5;}
+  .icobtn.excluir-opt:hover{background:#fbeae7;color:var(--vermelho);border-color:#f3c9c2;}
+  .icobtn.editar-opt:hover{background:#eef1f6;color:var(--azul);border-color:#c9d3e6;}
+  .icobtn.status-toggle-opt{font-size:11px;}
+  .icobtn.status-toggle-opt:hover{background:#e6f6ee;color:var(--verde);border-color:#bfe6d0;}
+  .sim-item{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid #f0f0f0;font-size:13px;}
+  .sim-item:last-child{border-bottom:none;}
+  .sim-item input[type="checkbox"]{width:17px;height:17px;accent-color:var(--amarelo-esc);flex-shrink:0;cursor:pointer;}
+  .sim-item .sim-desc{flex:1;color:var(--cinza);}
+  .sim-item .sim-cat{color:#999;font-size:11px;}
+  .sim-item .sim-valor{font-weight:600;white-space:nowrap;}
+  .sim-item.desmarcado{opacity:.4;}
+  .sim-item.desmarcado .sim-desc{text-decoration:line-through;}
+
+  @media (max-width: 640px){
+    body{padding:12px;}
+    h1{font-size:19px;}
+    .cards{grid-template-columns:1fr 1fr;}
+    .cards .card.saldo{grid-column:1 / -1;}
+    .graficos-grid{grid-template-columns:1fr;}
+    .card .valor{font-size:18px;}
+    .panel{padding:14px;}
+    form{grid-template-columns:1fr 1fr;}
+    form button{grid-column:1 / -1;}
+    table thead{display:none;}
+    table, tbody, tr, td{display:block;width:100%;}
+    tr{background:#fff;border:1px solid #eee;border-radius:10px;margin-bottom:10px;padding:10px 12px;}
+    td{border:none;padding:4px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+    td:before{content:attr(data-label);font-size:11px;color:#999;text-transform:uppercase;font-weight:600;}
+    td.acoes{justify-content:flex-end;}
+    td.acoes:before{content:'';}
+    .edit-row td{flex-direction:column;align-items:stretch;}
+    .edit-row input,.edit-row select{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gerenciador Financeiro</h1>
+  <div class="sub">Registro de receitas e despesas — dados salvos automaticamente</div>
+
+  <div class="abas">
+    <button type="button" class="aba-btn ativa" data-aba="lancamentos">Lançamentos</button>
+    <button type="button" class="aba-btn" data-aba="dashboard">Dashboard</button>
+    <button type="button" class="aba-btn" data-aba="simulador">Simulador</button>
+    <button type="button" class="aba-btn" data-aba="clientes">Clientes</button>
+  </div>
+
+  <div id="aba-dashboard" class="aba-conteudo" style="display:none;">
+    <div class="filtros">
+      <select id="filtroTipo">
+        <option value="todos">Todos</option>
+        <option value="receita">Receitas</option>
+        <option value="despesa">Despesas</option>
+      </select>
+      <select id="filtroMes">
+        <option value="todos">Todos os meses</option>
+      </select>
+      <select id="filtroStatus">
+        <option value="todos">Todos os status</option>
+        <option value="pago">Pago</option>
+        <option value="pendente">Pendente</option>
+      </select>
+      <select id="filtroCategoria">
+        <option value="todos">Todas as categorias</option>
+      </select>
+      <span style="font-size:12px;color:#999;align-self:center;">de</span>
+      <input type="date" id="filtroDataIni" style="width:auto;">
+      <span style="font-size:12px;color:#999;align-self:center;">até</span>
+      <input type="date" id="filtroDataFim" style="width:auto;">
+      <button type="button" id="limparPeriodo" style="padding:8px 10px;">Limpar período</button>
+    </div>
+
+    <div class="cards">
+      <div class="card receita"><div class="label">Receitas</div><div class="valor" id="totReceita">R$ 0,00</div></div>
+      <div class="card despesa"><div class="label">Despesas</div><div class="valor" id="totDespesa">R$ 0,00</div></div>
+      <div class="card saldo"><div class="label">Saldo</div><div class="valor" id="saldo">R$ 0,00</div></div>
+      <div class="card receita pendente"><div class="label">Receitas pendentes</div><div class="valor" id="totReceitaPendente">R$ 0,00</div></div>
+      <div class="card despesa pendente"><div class="label">Despesas pendentes</div><div class="valor" id="totDespesaPendente">R$ 0,00</div></div>
+    </div>
+
+    <div class="panel" id="painelVariacao">
+      <h2>Variação mês a mês <span id="variacaoLabelMeses" style="font-weight:400;font-size:12px;color:#999;"></span></h2>
+      <div class="cards" style="margin-bottom:0;">
+        <div class="card"><div class="label">Receitas</div><div class="valor" id="variacaoReceita">—</div></div>
+        <div class="card"><div class="label">Despesas</div><div class="valor" id="variacaoDespesa">—</div></div>
+        <div class="card"><div class="label">Saldo</div><div class="valor" id="variacaoSaldo">—</div></div>
+      </div>
+      <div id="variacaoVazio" class="empty" style="display:none;">É preciso ao menos dois meses com lançamentos para calcular a variação.</div>
+    </div>
+
+    <div class="graficos-grid">
+      <div class="panel">
+        <h2>Receitas x Despesas por mês</h2>
+        <div class="chart-wrap"><canvas id="chartColunas"></canvas></div>
+      </div>
+      <div class="panel">
+        <h2>Despesas por categoria</h2>
+        <div class="chart-wrap"><canvas id="chartPizzaDespesa"></canvas></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Resumo mensal</h2>
+      <table>
+        <thead><tr><th>Mês</th><th style="text-align:right">Receitas</th><th style="text-align:right">Despesas</th><th style="text-align:right">Saldo do mês</th><th style="text-align:right">Variação vs. mês anterior</th></tr></thead>
+        <tbody id="listaResumoMensal"></tbody>
+      </table>
+      <div id="vazioResumo" class="empty" style="display:none;">Nenhum lançamento no período.</div>
+    </div>
+
+    <div class="panel" style="display:none;">
+      <h2>Sincronização com Google Sheets</h2>
+      <div style="display:flex;gap:8px;align-items:end;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">
+          <label>URL do Web App (Google Apps Script)</label>
+          <input id="webhookUrl" type="text" placeholder="https://script.google.com/macros/s/.../exec">
+        </div>
+        <button id="salvarWebhook" type="button">Salvar</button>
+      </div>
+      <div id="syncStatus" style="font-size:12px;color:#999;margin-top:8px;">Cada lançamento é enviado automaticamente ao salvar.</div>
+    </div>
+  </div>
+
+  <div id="aba-lancamentos" class="aba-conteudo">
+    <div class="panel">
+      <h2>Novo lançamento</h2>
+      <form id="frm">
+        <div>
+          <label>Tipo</label>
+          <select id="tipo"><option value="receita">Receita</option><option value="despesa">Despesa</option></select>
+        </div>
+        <div>
+          <label>Categoria</label>
+          <select id="categoria"></select>
+        </div>
+        <div>
+          <label>Descrição</label>
+          <input id="desc" type="text" placeholder="Ex: Salário, Aluguel" required>
+        </div>
+        <div>
+          <label id="labelValor">Valor (R$)</label>
+          <input id="valor" type="number" step="0.01" min="0" placeholder="0,00" required>
+        </div>
+        <div>
+          <label>Data</label>
+          <input id="data" type="date" required>
+        </div>
+        <div>
+          <label>Recorrência</label>
+          <select id="recorrencia">
+            <option value="unico">Único</option>
+            <option value="recorrente">Recorrente (sem data para acabar)</option>
+            <option value="parcelado">Parcelado</option>
+          </select>
+        </div>
+        <div id="wrapQtd" style="display:none;">
+          <label>Número de parcelas</label>
+          <input id="qtdRepeticoes" type="number" min="2" step="1" value="2">
+        </div>
+        <button type="submit">Adicionar</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Lançamentos</h2>
+      <div class="filtro-rapido">
+        <button type="button" class="fr-btn ativo" data-fr="todos">Todos</button>
+        <button type="button" class="fr-btn" data-fr="receita">Receitas</button>
+        <button type="button" class="fr-btn" data-fr="despesa">Despesas</button>
+      </div>
+      <table>
+        <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th style="text-align:right">Valor</th><th>Status</th><th></th></tr></thead>
+        <tbody id="lista"></tbody>
+      </table>
+      <div id="vazio" class="empty" style="display:none;">Nenhum lançamento ainda.</div>
+    </div>
+  </div>
+
+  <div id="aba-simulador" class="aba-conteudo" style="display:none;">
+    <div class="filtros">
+      <select id="simMes"></select>
+    </div>
+
+    <div class="cards">
+      <div class="card receita"><div class="label">Receitas simuladas</div><div class="valor" id="simTotReceita">R$ 0,00</div></div>
+      <div class="card despesa"><div class="label">Despesas simuladas</div><div class="valor" id="simTotDespesa">R$ 0,00</div></div>
+      <div class="card saldo"><div class="label">Saldo simulado</div><div class="valor" id="simSaldo">R$ 0,00</div></div>
+    </div>
+
+    <div class="graficos-grid">
+      <div class="panel">
+        <h2>Receitas do mês <span style="font-weight:400;font-size:12px;color:#999;">(desmarque para excluir da simulação)</span></h2>
+        <div id="simListaReceitas"></div>
+        <div id="simVazioReceitas" class="empty" style="display:none;">Nenhuma receita neste mês.</div>
+      </div>
+      <div class="panel">
+        <h2>Despesas do mês <span style="font-weight:400;font-size:12px;color:#999;">(desmarque para excluir da simulação)</span></h2>
+        <div id="simListaDespesas"></div>
+        <div id="simVazioDespesas" class="empty" style="display:none;">Nenhuma despesa neste mês.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="aba-clientes" class="aba-conteudo" style="display:none;">
+    <div class="panel">
+      <h2>Novo cliente</h2>
+      <form id="frmCliente">
+        <div>
+          <label>Nome</label>
+          <input id="clNome" type="text" placeholder="Nome do cliente" required>
+        </div>
+        <div>
+          <label>Telefone</label>
+          <input id="clTelefone" type="text" placeholder="(00) 00000-0000">
+        </div>
+        <div>
+          <label>Cidade</label>
+          <input id="clCidade" type="text" placeholder="Cidade">
+        </div>
+        <div>
+          <label>Estado</label>
+          <select id="clEstado">
+            <option value="">Selecione</option>
+            <option>AC</option><option>AL</option><option>AP</option><option>AM</option><option>BA</option>
+            <option>CE</option><option>DF</option><option>ES</option><option>GO</option><option>MA</option>
+            <option>MT</option><option>MS</option><option>MG</option><option>PA</option><option>PB</option>
+            <option>PR</option><option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+            <option>RS</option><option>RO</option><option>RR</option><option>SC</option><option>SP</option>
+            <option>SE</option><option>TO</option>
+          </select>
+        </div>
+        <div>
+          <label>E-mail</label>
+          <input id="clEmail" type="email" placeholder="email@exemplo.com">
+        </div>
+        <div style="grid-column:1 / -1;">
+          <label>Observação</label>
+          <textarea id="clObs" rows="2" placeholder="Anotações sobre o cliente" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical;"></textarea>
+        </div>
+        <button type="submit">Adicionar</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Clientes cadastrados</h2>
+      <table>
+        <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade/UF</th><th>E-mail</th><th>Observação</th><th></th></tr></thead>
+        <tbody id="listaClientes"></tbody>
+      </table>
+      <div id="vazioClientes" class="empty" style="display:none;">Nenhum cliente cadastrado ainda.</div>
+    </div>
+  </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+let chartColunas, chartPizzaDespesa;
+const CORES = ['#FFC400','#1B2A4A','#1F8A5A','#C0392B','#E6A100','#5B6B8C','#8BC34A','#D97706','#607D8B','#9B59B6'];
+let registros = [];
+
+const CATEGORIAS_BASE = {
+  receita: ['Vendas','Pró-labore','Prestação de serviços','Investimentos','Outras receitas'],
+  despesa: ['Fornecedores','Folha de pagamento','Aluguel','Impostos','Marketing','Manutenção','Outras despesas']
+};
+let categoriasExtras = { receita: [], despesa: [] };
+
+function todasCategorias(tipo){
+  return [...CATEGORIAS_BASE[tipo], ...categoriasExtras[tipo]];
+}
+
+async function carregarCategoriasExtras(){
+  try{
+    const r = localStorage.getItem('categorias_extras');
+    categoriasExtras = r ? JSON.parse(r) : { receita: [], despesa: [] };
+  }catch(e){ categoriasExtras = { receita: [], despesa: [] }; }
+}
+
+async function salvarCategoriasExtras(){
+  try{ localStorage.setItem('categorias_extras', JSON.stringify(categoriasExtras)); }catch(e){}
+}
+
+function popularCategoriasForm(valorSelecionado){
+  const tipo = document.getElementById('tipo').value;
+  const sel = document.getElementById('categoria');
+  sel.innerHTML = todasCategorias(tipo).map(c=>`<option value="${c}">${c}</option>`).join('')
+    + '<option value="__nova__">+ Nova categoria...</option>';
+  if(valorSelecionado) sel.value = valorSelecionado;
+}
+
+document.getElementById('categoria').addEventListener('change', async (e)=>{
+  if(e.target.value === '__nova__'){
+    const tipo = document.getElementById('tipo').value;
+    const nome = prompt('Nome da nova categoria:');
+    if(nome && nome.trim()){
+      const nomeLimpo = nome.trim();
+      if(!todasCategorias(tipo).includes(nomeLimpo)){
+        categoriasExtras[tipo].push(nomeLimpo);
+        await salvarCategoriasExtras();
+      }
+      popularCategoriasForm(nomeLimpo);
+    } else {
+      popularCategoriasForm();
+    }
+  }
+});
+
+function fmt(v){ return v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+
+const WEBHOOK_URL_PADRAO = 'https://script.google.com/macros/s/AKfycbye-JqFnJGydDjPOeits2tu1AumANCWqp7hwuslsewN5q_duRbx0wyh55JXh7Jrbyh3/exec';
+let webhookUrl = '';
+
+async function carregarWebhook(){
+  try{
+    webhookUrl = localStorage.getItem('webhook_url') || WEBHOOK_URL_PADRAO;
+  }catch(e){ webhookUrl = WEBHOOK_URL_PADRAO; }
+  document.getElementById('webhookUrl').value = webhookUrl;
+}
+
+async function enviarParaSheets(registro, acao, entidade){
+  if(!webhookUrl) return;
+  const status = document.getElementById('syncStatus');
+  try{
+    await fetch(webhookUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ acao, registro, entidade: entidade || 'lancamento' })
+    });
+    if(status) status.textContent = 'Último envio: ' + new Date().toLocaleTimeString('pt-BR');
+  }catch(e){
+    if(status) status.textContent = 'Falha ao enviar para o Google Sheets.';
+  }
+}
+
+async function carregarDoSheets(){
+  if(!webhookUrl) return false;
+  try{
+    const resp = await fetch(webhookUrl + '?acao=listar&entidade=lancamento');
+    if(!resp.ok) return false;
+    const dados = await resp.json();
+    if(!Array.isArray(dados)) return false;
+    registros = dados.map(r=>({
+      id: String(r.id), data: r.data, desc: r.desc, tipo: r.tipo,
+      categoria: r.categoria, valor: parseFloat(r.valor)||0, pago: r.pago===true||r.pago==='Sim'
+    }));
+    await salvarLocal();
+    return true;
+  }catch(e){ return false; }
+}
+
+async function carregarClientesDoSheets(){
+  if(!webhookUrl) return false;
+  try{
+    const resp = await fetch(webhookUrl + '?acao=listar&entidade=cliente');
+    if(!resp.ok) return false;
+    const dados = await resp.json();
+    if(!Array.isArray(dados)) return false;
+    clientes = dados.map(c=>({
+      id: String(c.id), nome: c.nome, telefone: c.telefone, cidade: c.cidade,
+      estado: c.estado, email: c.email, obs: c.obs
+    }));
+    await salvarClientes();
+    return true;
+  }catch(e){ return false; }
+}
+
+document.getElementById('salvarWebhook').addEventListener('click', async ()=>{
+  webhookUrl = document.getElementById('webhookUrl').value.trim();
+  try{ localStorage.setItem('webhook_url', webhookUrl); }catch(e){}
+  document.getElementById('syncStatus').textContent = webhookUrl ? 'URL salva. Buscando dados da planilha...' : 'URL removida.';
+  if(webhookUrl){
+    const carregou = await carregarDoSheets();
+    if(carregou){
+      document.getElementById('syncStatus').textContent = registros.length + ' lançamento(s) carregados da planilha.';
+    }else{
+      document.getElementById('syncStatus').textContent = 'URL salva. Enviando histórico local...';
+      for(const reg of registros){ await enviarParaSheets(reg,'upsert'); }
+      document.getElementById('syncStatus').textContent = 'URL salva. ' + registros.length + ' lançamento(s) enviados.';
+    }
+    render();
+  }
+});
+
+async function carregar(){
+  try{
+    const r = localStorage.getItem('registros');
+    registros = r ? JSON.parse(r) : [];
+  }catch(e){ registros = []; }
+  await carregarCategoriasExtras();
+  await carregarWebhook();
+  if(webhookUrl){ await carregarDoSheets(); }
+  await estenderRecorrentes();
+  await carregarClientes();
+  popularCategoriasForm();
+  render();
+  renderClientes();
+}
+
+async function salvarLocal(){
+  try{ localStorage.setItem('registros', JSON.stringify(registros)); }catch(e){}
+}
+
+async function salvar(){
+  await salvarLocal();
+}
+
+let editandoId = null;
+let filtroRapido = 'todos';
+
+function render(){
+  const filtro = document.getElementById('filtroTipo').value;
+  const mes = document.getElementById('filtroMes').value;
+  const status = document.getElementById('filtroStatus').value;
+  const categoria = document.getElementById('filtroCategoria').value;
+  const dataIni = document.getElementById('filtroDataIni').value;
+  const dataFim = document.getElementById('filtroDataFim').value;
+  const lista = document.getElementById('lista');
+  const vazio = document.getElementById('vazio');
+  lista.innerHTML = '';
+
+  atualizarOpcoesMes(mes);
+  atualizarOpcoesCategoria(categoria);
+
+  const ordenados = [...registros].sort((a,b)=> new Date(b.data)-new Date(a.data));
+  let filtrados = filtro==='todos' ? ordenados : ordenados.filter(r=>r.tipo===filtro);
+  if(filtroRapido !== 'todos'){ filtrados = filtrados.filter(r=> r.tipo === filtroRapido); }
+  if(mes !== 'todos'){ filtrados = filtrados.filter(r=> r.data.slice(0,7) === mes); }
+  if(status !== 'todos'){ filtrados = filtrados.filter(r=> (status==='pago') === !!r.pago); }
+  if(categoria !== 'todos'){ filtrados = filtrados.filter(r=> r.categoria === categoria); }
+  if(dataIni){ filtrados = filtrados.filter(r=> r.data >= dataIni); }
+  if(dataFim){ filtrados = filtrados.filter(r=> r.data <= dataFim); }
+
+  if(filtrados.length===0){ vazio.style.display='block'; } else { vazio.style.display='none'; }
+
+  filtrados.forEach(r=>{
+    const tr = document.createElement('tr');
+    if(r.pago) tr.classList.add('pago');
+
+    if(editandoId === r.id){
+      tr.classList.add('edit-row');
+      tr.innerHTML = `
+        <td data-label="Data"><input type="date" class="e-data" value="${r.data}"></td>
+        <td data-label="Descrição"><input type="text" class="e-desc" value="${r.desc.replace(/"/g,'&quot;')}"></td>
+        <td data-label="Tipo">
+          <select class="e-tipo">
+            <option value="receita" ${r.tipo==='receita'?'selected':''}>Receita</option>
+            <option value="despesa" ${r.tipo==='despesa'?'selected':''}>Despesa</option>
+          </select>
+        </td>
+        <td data-label="Categoria">
+          <select class="e-categoria">
+            ${todasCategorias(r.tipo).map(c=>`<option value="${c}" ${r.categoria===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </td>
+        <td data-label="Valor" style="text-align:right"><input type="number" step="0.01" min="0" class="e-valor" value="${r.valor}" style="text-align:right"></td>
+        <td></td>
+        <td class="acoes">
+          <button type="button" class="icobtn salvar-edit" data-id="${r.id}" title="Salvar"><b>✓</b></button>
+          <button type="button" class="icobtn cancelar-edit" title="Cancelar">✕</button>
+        </td>
+      `;
+      lista.appendChild(tr);
+      return;
+    }
+
+    const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR');
+    tr.innerHTML = `
+      <td data-label="Data">${dataFmt}</td>
+      <td data-label="Descrição">${r.desc}</td>
+      <td data-label="Tipo"><span class="tag ${r.tipo}">${r.tipo==='receita'?'Receita':'Despesa'}</span></td>
+      <td data-label="Categoria"><span class="tag categoria">${r.categoria||'—'}</span></td>
+      <td data-label="Valor" style="text-align:right">${fmt(r.valor)}</td>
+      <td data-label="Status"><button type="button" class="status-btn ${r.pago?'pago':'pendente'}" data-id="${r.id}">${r.pago?'Pago':'Pendente'}</button></td>
+      <td class="acoes">
+        <button type="button" class="icobtn status-toggle-opt" data-id="${r.id}" title="${r.pago?'Marcar como pendente':'Marcar como pago'}">${r.pago?'↩ Desfazer pago':'✔ Marcar pago'}</button>
+        <button type="button" class="icobtn editar-opt" data-id="${r.id}" title="Editar">✎</button>
+        <button type="button" class="icobtn excluir-opt" data-id="${r.id}" title="Excluir">✕</button>
+      </td>
+    `;
+    lista.appendChild(tr);
+  });
+
+  lista.querySelectorAll('.status-btn').forEach(b=>{
+    b.onclick = async ()=>{
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      if(reg){ reg.pago = !reg.pago; await salvar(); await enviarParaSheets(reg,'upsert'); render(); }
+    };
+  });
+
+  lista.querySelectorAll('.status-toggle-opt').forEach(b=>{
+    b.onclick = async (ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      if(reg){ reg.pago = !reg.pago; await salvar(); await enviarParaSheets(reg,'upsert'); render(); }
+    };
+  });
+
+  lista.querySelectorAll('.editar-opt').forEach(b=>{
+    b.onclick = (ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      editandoId = b.dataset.id;
+      render();
+    };
+  });
+
+  lista.querySelectorAll('.excluir-opt').forEach(b=>{
+    b.onclick = async (ev)=>{
+      ev.preventDefault();
+      ev.stopPropagation();
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      registros = registros.filter(r=>r.id !== b.dataset.id);
+      await salvar();
+      if(reg) await enviarParaSheets(reg,'excluir');
+      render();
+    };
+  });
+
+  lista.querySelectorAll('.cancelar-edit').forEach(b=>{
+    b.onclick = (ev)=>{ ev.preventDefault(); editandoId = null; render(); };
+  });
+
+  lista.querySelectorAll('.e-tipo').forEach(sel=>{
+    sel.onchange = ()=>{
+      const tr = sel.closest('tr');
+      const catSel = tr.querySelector('.e-categoria');
+      catSel.innerHTML = todasCategorias(sel.value).map(c=>`<option value="${c}">${c}</option>`).join('');
+    };
+  });
+
+  lista.querySelectorAll('.salvar-edit').forEach(b=>{
+    b.onclick = async ()=>{
+      const tr = b.closest('tr');
+      const reg = registros.find(r=>r.id===b.dataset.id);
+      if(!reg) return;
+      const novoValor = parseFloat(tr.querySelector('.e-valor').value);
+      const novaData = tr.querySelector('.e-data').value;
+      const novaDesc = tr.querySelector('.e-desc').value.trim();
+      const novoTipo = tr.querySelector('.e-tipo').value;
+      const novaCategoria = tr.querySelector('.e-categoria').value;
+      if(!novaDesc || isNaN(novoValor) || !novaData) return;
+      reg.desc = novaDesc; reg.valor = novoValor; reg.data = novaData; reg.tipo = novoTipo; reg.categoria = novaCategoria;
+      editandoId = null;
+      await salvar();
+      await enviarParaSheets(reg,'upsert');
+      render();
+    };
+  });
+
+  let baseTotais = mes === 'todos' ? registros : registros.filter(r=> r.data.slice(0,7) === mes);
+  if(status !== 'todos'){ baseTotais = baseTotais.filter(r=> (status==='pago') === !!r.pago); }
+  if(categoria !== 'todos'){ baseTotais = baseTotais.filter(r=> r.categoria === categoria); }
+  if(dataIni){ baseTotais = baseTotais.filter(r=> r.data >= dataIni); }
+  if(dataFim){ baseTotais = baseTotais.filter(r=> r.data <= dataFim); }
+  const totReceita = baseTotais.filter(r=>r.tipo==='receita').reduce((s,r)=>s+r.valor,0);
+  const totDespesa = baseTotais.filter(r=>r.tipo==='despesa').reduce((s,r)=>s+r.valor,0);
+  document.getElementById('totReceita').textContent = fmt(totReceita);
+  document.getElementById('totDespesa').textContent = fmt(totDespesa);
+  document.getElementById('saldo').textContent = fmt(totReceita-totDespesa);
+
+  const totReceitaPendente = baseTotais.filter(r=>r.tipo==='receita' && !r.pago).reduce((s,r)=>s+r.valor,0);
+  const totDespesaPendente = baseTotais.filter(r=>r.tipo==='despesa' && !r.pago).reduce((s,r)=>s+r.valor,0);
+  document.getElementById('totReceitaPendente').textContent = fmt(totReceitaPendente);
+  document.getElementById('totDespesaPendente').textContent = fmt(totDespesaPendente);
+
+  atualizarGraficos(baseTotais);
+  atualizarResumoMensal(baseTotais);
+
+  if(document.getElementById('simMes')){
+    popularSimMes();
+    renderSimulador();
+  }
+}
+
+function atualizarGraficos(dados){
+  if(typeof Chart === 'undefined') return;
+
+  // Receitas x Despesas por mês
+  const meses = [...new Set(dados.map(r=>r.data.slice(0,7)))].sort();
+  const receitasPorMes = meses.map(m=> dados.filter(r=>r.tipo==='receita' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0));
+  const despesasPorMes = meses.map(m=> dados.filter(r=>r.tipo==='despesa' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0));
+  const labelsMes = meses.map(m=>{
+    const [ano,mm] = m.split('-');
+    return nomesMes[parseInt(mm,10)-1].slice(0,3) + '/' + ano.slice(2);
+  });
+
+  if(chartColunas) chartColunas.destroy();
+  chartColunas = new Chart(document.getElementById('chartColunas'), {
+    type: 'bar',
+    data: {
+      labels: labelsMes,
+      datasets: [
+        { label: 'Receitas', data: receitasPorMes, backgroundColor: '#1F8A5A' },
+        { label: 'Despesas', data: despesasPorMes, backgroundColor: '#C0392B' }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+  });
+
+  // Despesas por categoria (pizza)
+  const despesas = dados.filter(r=>r.tipo==='despesa');
+  const catsDespesa = [...new Set(despesas.map(r=>r.categoria))];
+  const valoresDespesa = catsDespesa.map(c=> despesas.filter(r=>r.categoria===c).reduce((s,r)=>s+r.valor,0));
+
+  if(chartPizzaDespesa) chartPizzaDespesa.destroy();
+  chartPizzaDespesa = new Chart(document.getElementById('chartPizzaDespesa'), {
+    type: 'pie',
+    data: { labels: catsDespesa, datasets: [{ data: valoresDespesa, backgroundColor: CORES }] },
+    options: { responsive:true, maintainAspectRatio:false }
+  });
+
+}
+
+function formatarVariacao(atual, anterior){
+  if(anterior === 0){
+    if(atual === 0) return { texto:'—', cor:'#999' };
+    return { texto:'novo', cor:'var(--azul)' };
+  }
+  const pct = ((atual - anterior) / Math.abs(anterior)) * 100;
+  const sinal = pct > 0 ? '+' : '';
+  return { texto: `${sinal}${pct.toFixed(1)}%`, cor: pct >= 0 ? 'var(--verde)' : 'var(--vermelho)' };
+}
+
+function atualizarResumoMensal(dados){
+  const tbody = document.getElementById('listaResumoMensal');
+  const vazio = document.getElementById('vazioResumo');
+  tbody.innerHTML = '';
+
+  const meses = [...new Set(dados.map(r=>r.data.slice(0,7)))].sort();
+
+  if(meses.length === 0){ vazio.style.display = 'block'; }
+  else { vazio.style.display = 'none'; }
+
+  const porMes = {};
+  meses.forEach(m=>{
+    porMes[m] = {
+      receitas: dados.filter(r=>r.tipo==='receita' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0),
+      despesas: dados.filter(r=>r.tipo==='despesa' && r.data.slice(0,7)===m).reduce((s,r)=>s+r.valor,0)
+    };
+  });
+
+  meses.forEach((m, idx)=>{
+    const { receitas: receitasMes, despesas: despesasMes } = porMes[m];
+    const saldoMes = receitasMes - despesasMes;
+    const [ano, mm] = m.split('-');
+    const nomeMes = nomesMes[parseInt(mm,10)-1];
+    const nomeCapitalizado = nomeMes.charAt(0).toUpperCase() + nomeMes.slice(1);
+
+    let variacaoHtml = '<span style="color:#999;">—</span>';
+    if(idx > 0){
+      const anterior = porMes[meses[idx-1]];
+      const saldoAnterior = anterior.receitas - anterior.despesas;
+      const v = formatarVariacao(saldoMes, saldoAnterior);
+      variacaoHtml = `<span style="color:${v.cor};font-weight:600;">${v.texto}</span>`;
+    }
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td data-label="Mês">${nomeCapitalizado} de ${ano}</td>
+      <td data-label="Receitas" style="text-align:right;color:var(--verde);">${fmt(receitasMes)}</td>
+      <td data-label="Despesas" style="text-align:right;color:var(--vermelho);">${fmt(despesasMes)}</td>
+      <td data-label="Saldo do mês" style="text-align:right;font-weight:700;color:${saldoMes>=0?'var(--verde)':'var(--vermelho)'};">${fmt(saldoMes)}</td>
+      <td data-label="Variação vs. mês anterior" style="text-align:right;">${variacaoHtml}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  atualizarCartoesVariacao(meses, porMes);
+}
+
+function atualizarCartoesVariacao(meses, porMes){
+  const painel = document.getElementById('variacaoVazio');
+  const wrapCards = document.querySelector('#painelVariacao .cards');
+  const label = document.getElementById('variacaoLabelMeses');
+
+  if(meses.length < 2){
+    painel.style.display = 'block';
+    wrapCards.style.display = 'none';
+    label.textContent = '';
+    return;
+  }
+  painel.style.display = 'none';
+  wrapCards.style.display = 'grid';
+
+  const mesAtual = meses[meses.length - 1];
+  const mesAnterior = meses[meses.length - 2];
+  const atual = porMes[mesAtual];
+  const anterior = porMes[mesAnterior];
+  const saldoAtual = atual.receitas - atual.despesas;
+  const saldoAnterior = anterior.receitas - anterior.despesas;
+
+  const nomeAtual = nomesMes[parseInt(mesAtual.split('-')[1],10)-1];
+  const nomeAnterior = nomesMes[parseInt(mesAnterior.split('-')[1],10)-1];
+  label.textContent = `(${nomeAtual} vs. ${nomeAnterior})`;
+
+  const vReceita = formatarVariacao(atual.receitas, anterior.receitas);
+  const vDespesa = formatarVariacao(atual.despesas, anterior.despesas);
+  const vSaldo = formatarVariacao(saldoAtual, saldoAnterior);
+
+  const elR = document.getElementById('variacaoReceita');
+  const elD = document.getElementById('variacaoDespesa');
+  const elS = document.getElementById('variacaoSaldo');
+  elR.textContent = vReceita.texto; elR.style.color = vReceita.cor;
+  elD.textContent = vDespesa.texto; elD.style.color = vDespesa.cor === 'var(--verde)' ? 'var(--vermelho)' : (vDespesa.cor === 'var(--vermelho)' ? 'var(--verde)' : vDespesa.cor);
+  elS.textContent = vSaldo.texto; elS.style.color = vSaldo.cor;
+}
+
+// ===== Simulador =====
+let simDesmarcados = new Set();
+
+function popularSimMes(){
+  const sel = document.getElementById('simMes');
+  const chaves = [...new Set(registros.map(r=>r.data.slice(0,7)))].sort().reverse();
+  const atual = sel.value;
+  sel.innerHTML = chaves.map(c=>{
+    const [ano, mm] = c.split('-');
+    const label = `${nomesMes[parseInt(mm,10)-1]} de ${ano}`;
+    return `<option value="${c}">${label.charAt(0).toUpperCase()+label.slice(1)}</option>`;
+  }).join('');
+  if(chaves.includes(atual)){ sel.value = atual; }
+  else if(chaves.length){ sel.value = chaves[0]; }
+}
+
+function renderSimulador(){
+  const sel = document.getElementById('simMes');
+  const mes = sel.value;
+
+  const doMes = registros.filter(r=> r.data.slice(0,7) === mes);
+  const receitas = doMes.filter(r=>r.tipo==='receita').sort((a,b)=> new Date(b.data)-new Date(a.data));
+  const despesas = doMes.filter(r=>r.tipo==='despesa').sort((a,b)=> new Date(b.data)-new Date(a.data));
+
+  renderSimLista('simListaReceitas', 'simVazioReceitas', receitas, 'Nenhuma receita neste mês.');
+  renderSimLista('simListaDespesas', 'simVazioDespesas', despesas, 'Nenhuma despesa neste mês.');
+
+  const totReceita = receitas.filter(r=>!simDesmarcados.has(r.id)).reduce((s,r)=>s+r.valor,0);
+  const totDespesa = despesas.filter(r=>!simDesmarcados.has(r.id)).reduce((s,r)=>s+r.valor,0);
+  document.getElementById('simTotReceita').textContent = fmt(totReceita);
+  document.getElementById('simTotDespesa').textContent = fmt(totDespesa);
+  document.getElementById('simSaldo').textContent = fmt(totReceita - totDespesa);
+}
+
+function renderSimLista(containerId, vazioId, itens, msgVazio){
+  const container = document.getElementById(containerId);
+  const vazio = document.getElementById(vazioId);
+  container.innerHTML = '';
+
+  if(itens.length === 0){ vazio.textContent = msgVazio; vazio.style.display = 'block'; return; }
+  vazio.style.display = 'none';
+
+  itens.forEach(r=>{
+    const marcado = !simDesmarcados.has(r.id);
+    const dataFmt = new Date(r.data+'T00:00:00').toLocaleDateString('pt-BR');
+    const div = document.createElement('div');
+    div.className = 'sim-item' + (marcado ? '' : ' desmarcado');
+    div.innerHTML = `
+      <input type="checkbox" data-id="${r.id}" ${marcado ? 'checked' : ''}>
+      <span class="sim-desc">${r.desc} <span class="sim-cat">· ${r.categoria || '—'} · ${dataFmt}</span></span>
+      <span class="sim-valor" style="color:${r.tipo==='receita'?'var(--verde)':'var(--vermelho)'};">${fmt(r.valor)}</span>
+    `;
+    container.appendChild(div);
+  });
+
+  container.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      if(cb.checked){ simDesmarcados.delete(cb.dataset.id); }
+      else { simDesmarcados.add(cb.dataset.id); }
+      renderSimulador();
+    });
+  });
+}
+
+document.getElementById('simMes').addEventListener('change', renderSimulador);
+
+document.querySelectorAll('.aba-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.aba-btn').forEach(b=>b.classList.remove('ativa'));
+    document.querySelectorAll('.aba-conteudo').forEach(c=>c.style.display='none');
+    btn.classList.add('ativa');
+    document.getElementById('aba-' + btn.dataset.aba).style.display = 'block';
+    if(btn.dataset.aba === 'simulador'){ popularSimMes(); renderSimulador(); }
+  });
+});
+
+const JANELA_RECORRENTE_MESES = 12; // quantos meses à frente ficam pré-gerados; renovado automaticamente a cada acesso
+
+function somarMeses(dataStr, n){
+  const [ano, mes, dia] = dataStr.split('-').map(Number);
+  const d = new Date(ano, mes - 1 + n, dia);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+document.getElementById('recorrencia').addEventListener('change', ()=>{
+  const rec = document.getElementById('recorrencia').value;
+  document.getElementById('wrapQtd').style.display = rec === 'parcelado' ? 'block' : 'none';
+  document.getElementById('labelValor').textContent = rec === 'parcelado' ? 'Valor da parcela (R$)' : (rec === 'recorrente' ? 'Valor mensal (R$)' : 'Valor (R$)');
+});
+
+async function estenderRecorrentes(){
+  const hojeMaisJanela = somarMeses(new Date().toISOString().slice(0,10), JANELA_RECORRENTE_MESES);
+  const series = {};
+  registros.filter(r=>r.serieId && r.recorrente).forEach(r=>{
+    if(!series[r.serieId] || r.data > series[r.serieId].data) series[r.serieId] = r;
+  });
+  const novos = [];
+  Object.values(series).forEach(ultimo=>{
+    let dataAtual = ultimo.data;
+    let i = 1;
+    while(somarMeses(dataAtual, 0) < hojeMaisJanela && i < 36){
+      const proxData = somarMeses(ultimo.data, i);
+      if(proxData > hojeMaisJanela) break;
+      if(!registros.some(r=> r.serieId === ultimo.serieId && r.data === proxData)){
+        novos.push({
+          id: ultimo.serieId + '-' + proxData, serieId: ultimo.serieId, recorrente: true,
+          tipo: ultimo.tipo, categoria: ultimo.categoria, desc: ultimo.desc,
+          valor: ultimo.valor, data: proxData, pago: false
+        });
+      }
+      dataAtual = proxData;
+      i++;
+    }
+  });
+  if(novos.length){
+    registros.push(...novos);
+    await salvarLocal();
+    for(const reg of novos){ await enviarParaSheets(reg,'upsert'); }
+  }
+}
+
+document.getElementById('frm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const tipo = document.getElementById('tipo').value;
+  const categoria = document.getElementById('categoria').value;
+  if(categoria === '__nova__') return;
+  const desc = document.getElementById('desc').value.trim();
+  const valor = parseFloat(document.getElementById('valor').value);
+  const data = document.getElementById('data').value;
+  const recorrencia = document.getElementById('recorrencia').value;
+  const qtd = Math.max(2, parseInt(document.getElementById('qtdRepeticoes').value, 10) || 2);
+  if(!desc || isNaN(valor) || !data) return;
+
+  const novos = [];
+  const grupoId = Date.now().toString();
+
+  if(recorrencia === 'unico'){
+    novos.push({ id: grupoId, tipo, categoria, desc, valor, data, pago:false });
+  } else if(recorrencia === 'recorrente'){
+    const hojeMaisJanela = somarMeses(new Date().toISOString().slice(0,10), JANELA_RECORRENTE_MESES);
+    let i = 0;
+    while(somarMeses(data, i) <= hojeMaisJanela){
+      novos.push({
+        id: grupoId + '-' + i, serieId: grupoId, recorrente: true,
+        tipo, categoria, desc, valor, data: somarMeses(data, i), pago:false
+      });
+      i++;
+    }
+  } else if(recorrencia === 'parcelado'){
+    for(let i=0; i<qtd; i++){
+      novos.push({
+        id: grupoId + '-' + i, tipo, categoria,
+        desc: `${desc} (parcela ${i+1}/${qtd})`,
+        valor, data: somarMeses(data, i), pago:false
+      });
+    }
+  }
+
+  registros.push(...novos);
+  await salvar();
+  for(const reg of novos){ await enviarParaSheets(reg,'upsert'); }
+  render();
+  e.target.reset();
+  popularCategoriasForm();
+  document.getElementById('data').valueAsDate = new Date();
+  document.getElementById('wrapQtd').style.display = 'none';
+  document.getElementById('labelValor').textContent = 'Valor (R$)';
+});
+
+document.getElementById('tipo').addEventListener('change', ()=>popularCategoriasForm());
+
+const nomesMes = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+function atualizarOpcoesMes(selecionado){
+  const sel = document.getElementById('filtroMes');
+  const chaves = [...new Set(registros.map(r=>r.data.slice(0,7)))].sort().reverse();
+  const atual = [...sel.options].map(o=>o.value).join(',');
+  const novo = ['todos', ...chaves].join(',');
+  if(atual === novo) return;
+
+  sel.innerHTML = '<option value="todos">Todos os meses</option>' + chaves.map(c=>{
+    const [ano,m] = c.split('-');
+    const label = `${nomesMes[parseInt(m,10)-1]} de ${ano}`;
+    return `<option value="${c}">${label.charAt(0).toUpperCase()+label.slice(1)}</option>`;
+  }).join('');
+  sel.value = chaves.includes(selecionado) ? selecionado : 'todos';
+}
+
+function atualizarOpcoesCategoria(selecionado){
+  const sel = document.getElementById('filtroCategoria');
+  const chaves = [...new Set(registros.map(r=>r.categoria).filter(Boolean))].sort();
+  const atual = [...sel.options].map(o=>o.value).join(',');
+  const novo = ['todos', ...chaves].join(',');
+  if(atual === novo) return;
+
+  sel.innerHTML = '<option value="todos">Todas as categorias</option>' + chaves.map(c=>`<option value="${c}">${c}</option>`).join('');
+  sel.value = chaves.includes(selecionado) ? selecionado : 'todos';
+}
+
+document.getElementById('filtroTipo').addEventListener('change', render);
+document.getElementById('filtroMes').addEventListener('change', render);
+document.getElementById('filtroStatus').addEventListener('change', render);
+document.getElementById('filtroCategoria').addEventListener('change', render);
+document.getElementById('filtroDataIni').addEventListener('change', render);
+document.getElementById('filtroDataFim').addEventListener('change', render);
+document.getElementById('limparPeriodo').addEventListener('click', ()=>{
+  document.getElementById('filtroDataIni').value = '';
+  document.getElementById('filtroDataFim').value = '';
+  render();
+});
+// ===== Clientes =====
+let clientes = [];
+let editandoClienteId = null;
+
+async function carregarClientes(){
+  try{
+    const c = localStorage.getItem('clientes');
+    clientes = c ? JSON.parse(c) : [];
+  }catch(e){ clientes = []; }
+  if(webhookUrl){ await carregarClientesDoSheets(); }
+}
+
+async function salvarClientes(){
+  try{ localStorage.setItem('clientes', JSON.stringify(clientes)); }catch(e){}
+}
+
+function renderClientes(){
+  const tbody = document.getElementById('listaClientes');
+  const vazio = document.getElementById('vazioClientes');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+
+  if(clientes.length === 0){ vazio.style.display = 'block'; return; }
+  vazio.style.display = 'none';
+
+  const ordenados = [...clientes].sort((a,b)=> a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  ordenados.forEach(c=>{
+    const tr = document.createElement('tr');
+
+    if(editandoClienteId === c.id){
+      tr.classList.add('edit-row');
+      tr.innerHTML = `
+        <td data-label="Nome"><input type="text" class="ec-nome" value="${(c.nome||'').replace(/"/g,'&quot;')}"></td>
+        <td data-label="Telefone"><input type="text" class="ec-telefone" value="${(c.telefone||'').replace(/"/g,'&quot;')}"></td>
+        <td data-label="Cidade/UF" style="display:flex;gap:4px;">
+          <input type="text" class="ec-cidade" value="${(c.cidade||'').replace(/"/g,'&quot;')}" style="width:60%;">
+          <select class="ec-estado" style="width:40%;">
+            <option value="">UF</option>
+            ${['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'].map(uf=>`<option ${c.estado===uf?'selected':''}>${uf}</option>`).join('')}
+          </select>
+        </td>
+        <td data-label="E-mail"><input type="email" class="ec-email" value="${(c.email||'').replace(/"/g,'&quot;')}"></td>
+        <td data-label="Observação"><input type="text" class="ec-obs" value="${(c.obs||'').replace(/"/g,'&quot;')}"></td>
+        <td class="acoes">
+          <button type="button" class="icobtn salvar-edit-cliente" data-id="${c.id}" title="Salvar"><b>✓</b></button>
+          <button type="button" class="icobtn cancelar-edit-cliente" title="Cancelar">✕</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+      return;
+    }
+
+    tr.innerHTML = `
+      <td data-label="Nome">${c.nome}</td>
+      <td data-label="Telefone">${c.telefone || '—'}</td>
+      <td data-label="Cidade/UF">${[c.cidade, c.estado].filter(Boolean).join('/') || '—'}</td>
+      <td data-label="E-mail">${c.email || '—'}</td>
+      <td data-label="Observação" style="max-width:220px;white-space:normal;">${c.obs || '—'}</td>
+      <td class="acoes">
+        <button type="button" class="icobtn editar-cliente" data-id="${c.id}" title="Editar">✎</button>
+        <button type="button" class="icobtn excluir-cliente" data-id="${c.id}" title="Excluir">✕</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('.editar-cliente').forEach(b=>{
+    b.onclick = ()=>{ editandoClienteId = b.dataset.id; renderClientes(); };
+  });
+
+  tbody.querySelectorAll('.cancelar-edit-cliente').forEach(b=>{
+    b.onclick = ()=>{ editandoClienteId = null; renderClientes(); };
+  });
+
+  tbody.querySelectorAll('.excluir-cliente').forEach(b=>{
+    b.onclick = async ()=>{
+      const c = clientes.find(c=>c.id===b.dataset.id);
+      clientes = clientes.filter(c=>c.id !== b.dataset.id);
+      await salvarClientes();
+      if(c) await enviarParaSheets(c,'excluir','cliente');
+      renderClientes();
+    };
+  });
+
+  tbody.querySelectorAll('.salvar-edit-cliente').forEach(b=>{
+    b.onclick = async ()=>{
+      const tr = b.closest('tr');
+      const c = clientes.find(c=>c.id===b.dataset.id);
+      if(!c) return;
+      const nome = tr.querySelector('.ec-nome').value.trim();
+      if(!nome) return;
+      c.nome = nome;
+      c.telefone = tr.querySelector('.ec-telefone').value.trim();
+      c.cidade = tr.querySelector('.ec-cidade').value.trim();
+      c.estado = tr.querySelector('.ec-estado').value;
+      c.email = tr.querySelector('.ec-email').value.trim();
+      c.obs = tr.querySelector('.ec-obs').value.trim();
+      editandoClienteId = null;
+      await salvarClientes();
+      await enviarParaSheets(c,'upsert','cliente');
+      renderClientes();
+    };
+  });
+}
+
+document.getElementById('frmCliente').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const nome = document.getElementById('clNome').value.trim();
+  if(!nome) return;
+  const novoCliente = {
+    id: Date.now().toString(),
+    nome,
+    telefone: document.getElementById('clTelefone').value.trim(),
+    cidade: document.getElementById('clCidade').value.trim(),
+    estado: document.getElementById('clEstado').value,
+    email: document.getElementById('clEmail').value.trim(),
+    obs: document.getElementById('clObs').value.trim()
+  };
+  clientes.push(novoCliente);
+  await salvarClientes();
+  await enviarParaSheets(novoCliente,'upsert','cliente');
+  renderClientes();
+  e.target.reset();
+});
+
+document.getElementById('data').valueAsDate = new Date();
+
+document.querySelectorAll('.fr-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.fr-btn').forEach(b=>b.classList.remove('ativo'));
+    btn.classList.add('ativo');
+    filtroRapido = btn.dataset.fr;
+    render();
+  });
+});
+
+carregar();
+</script>
+</body>
+</html>
